@@ -14,3 +14,10 @@ uvicorn==0.37.0
 pydantic==2.11.9
 python-dotenv==1.1.1
 langchain-openai==0.3.34
+numpy==2.3.3
+scikit-learn==1.7.2
+googletrans==4.0.2
+google-cloud-translate==3.21.1
+pandas==2.3.3
+matplotlib==3.10.6
+seaborn==0.13.2

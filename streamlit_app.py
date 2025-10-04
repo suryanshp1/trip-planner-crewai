@@ -1,6 +1,8 @@
 from crewai import Crew, LLM
 from trip_agents import TripAgents, StreamToExpander
 from trip_tasks import TripTasks
+from intelligence_agents import IntelligenceAgents
+from intelligence_tasks import IntelligenceTasks
 import streamlit as st
 import datetime
 import sys
@@ -20,10 +22,11 @@ def icon(emoji: str):
 
 class TripCrew:
 
-    def __init__(self, origin, cities, date_range, interests):
+    def __init__(self, origin, cities, date_range, interests, enable_intelligence=False):
         self.cities = cities
         self.origin = origin
         self.interests = interests
+        self.enable_intelligence = enable_intelligence
         # Convert date_range to string format for better handling
         self.date_range = f"{date_range[0].strftime('%Y-%m-%d')} to {date_range[1].strftime('%Y-%m-%d')}"
         self.output_placeholder = st.empty()
@@ -79,6 +82,76 @@ class TripCrew:
             st.error(f"An error occurred: {str(e)}")
             return None
 
+    def run_with_intelligence(self):
+        """Run trip planning with AI-powered intelligence features"""
+        try:
+            # Run basic trip planning
+            basic_result = self.run()
+            
+            if not basic_result:
+                return None
+            
+            # Add intelligence analysis section
+            st.markdown("---")
+            st.markdown("## 🧠 AI-Powered Travel Intelligence Analysis")
+            
+            # Initialize intelligence agents
+            intel_agents = IntelligenceAgents(llm=self.llm)
+            intel_tasks = IntelligenceTasks()
+            
+            # Create tabs for different intelligence features
+            tab1, tab2, tab3, tab4 = st.tabs(["🛡️ Risk Assessment", "👥 Crowd Density", "💰 Price Optimization", "🗣️ Language Assistance"])
+            
+            with tab1:
+                st.markdown("### Risk Assessment & Safety Analysis")
+                with st.spinner("Analyzing travel risks and safety conditions..."):
+                    risk_agent = intel_agents.risk_assessment_agent()
+                    risk_task = intel_tasks.risk_assessment_task(
+                        risk_agent, self.origin, self.cities, self.date_range, self.interests
+                    )
+                    risk_crew = Crew(agents=[risk_agent], tasks=[risk_task], verbose=True)
+                    risk_result = risk_crew.kickoff()
+                    st.markdown(risk_result)
+            
+            with tab2:
+                st.markdown("### Crowd Density Predictions")
+                with st.spinner("Predicting crowd levels at attractions..."):
+                    crowd_agent = intel_agents.crowd_density_agent()
+                    crowd_task = intel_tasks.crowd_density_task(
+                        crowd_agent, self.cities, self.date_range, self.interests
+                    )
+                    crowd_crew = Crew(agents=[crowd_agent], tasks=[crowd_task], verbose=True)
+                    crowd_result = crowd_crew.kickoff()
+                    st.markdown(crowd_result)
+            
+            with tab3:
+                st.markdown("### Price Optimization Analysis")
+                with st.spinner("Analyzing prices and finding best deals..."):
+                    price_agent = intel_agents.price_optimization_agent()
+                    price_task = intel_tasks.price_optimization_task(
+                        price_agent, self.origin, self.cities, self.date_range, self.interests
+                    )
+                    price_crew = Crew(agents=[price_agent], tasks=[price_task], verbose=True)
+                    price_result = price_crew.kickoff()
+                    st.markdown(price_result)
+            
+            with tab4:
+                st.markdown("### Language & Cultural Assistance")
+                with st.spinner("Preparing language and cultural guidance..."):
+                    lang_agent = intel_agents.language_barrier_agent()
+                    lang_task = intel_tasks.language_barrier_task(
+                        lang_agent, self.cities, self.date_range, self.interests
+                    )
+                    lang_crew = Crew(agents=[lang_agent], tasks=[lang_task], verbose=True)
+                    lang_result = lang_crew.kickoff()
+                    st.markdown(lang_result)
+            
+            return basic_result
+            
+        except Exception as e:
+            st.error(f"An error occurred during intelligence analysis: {str(e)}")
+            return self.run()  # Fallback to basic planning
+
 
 if __name__ == "__main__":
     icon("🏖️ VacAIgent")
@@ -107,6 +180,14 @@ if __name__ == "__main__":
             )
             interests = st.text_area("High level interests and hobbies or extra details about your trip?",
                                      placeholder="2 adults who love swimming, dancing, hiking, and eating")
+            
+            # Intelligence features toggle
+            st.markdown("### 🧠 AI Intelligence Features")
+            enable_intelligence = st.checkbox(
+                "Enable AI-Powered Travel Intelligence", 
+                value=False,
+                help="Includes risk assessment, crowd density predictions, price optimization, and language assistance"
+            )
 
             submitted = st.form_submit_button("Submit")
 
@@ -140,8 +221,12 @@ if __name__ == "__main__":
                 try:
                     # Redirect stdout to StreamToExpander
                     sys.stdout = StreamToExpander(st)
-                    trip_crew = TripCrew(location, cities, date_range, interests)
-                    result = trip_crew.run()
+                    trip_crew = TripCrew(location, cities, date_range, interests, enable_intelligence=enable_intelligence)
+                    
+                    if enable_intelligence:
+                        result = trip_crew.run_with_intelligence()
+                    else:
+                        result = trip_crew.run()
                 finally:
                     # Always restore original stdout
                     sys.stdout = original_stdout
