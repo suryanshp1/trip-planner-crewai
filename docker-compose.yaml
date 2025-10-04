@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  trip-planner:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: trip-planner-app
+    ports:
+      - "8501:8501"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - STREAMLIT_SERVER_PORT=8501
+      - STREAMLIT_SERVER_ADDRESS=0.0.0.0
+    volumes:
+      # Mount .env file if it exists
+      - ./.env:/app/.env:ro
+      # Optional: Mount logs directory for persistent logging
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - trip-planner-network
+
+networks:
+  trip-planner-network:
+    driver: bridge
