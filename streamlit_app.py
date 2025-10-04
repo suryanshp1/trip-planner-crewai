@@ -131,15 +131,22 @@ if __name__ == "__main__":
             unsafe_allow_html=True
         )
 
+    # Check if form was submitted and process the trip planning
+    if submitted:
+        with st.status("🤖 **Agents at work...**", state="running", expanded=True) as status:
+            with st.container(height=500, border=False):
+                # Store original stdout
+                original_stdout = sys.stdout
+                try:
+                    # Redirect stdout to StreamToExpander
+                    sys.stdout = StreamToExpander(st)
+                    trip_crew = TripCrew(location, cities, date_range, interests)
+                    result = trip_crew.run()
+                finally:
+                    # Always restore original stdout
+                    sys.stdout = original_stdout
+            status.update(label="✅ Trip Plan Ready!",
+                          state="complete", expanded=False)
 
-if submitted:
-    with st.status("🤖 **Agents at work...**", state="running", expanded=True) as status:
-        with st.container(height=500, border=False):
-            sys.stdout = StreamToExpander(st)
-            trip_crew = TripCrew(location, cities, date_range, interests)
-            result = trip_crew.run()
-        status.update(label="✅ Trip Plan Ready!",
-                      state="complete", expanded=False)
-
-    st.subheader("Here is your Trip Plan", anchor=False, divider="rainbow")
-    st.markdown(result)
+        st.subheader("Here is your Trip Plan", anchor=False, divider="rainbow")
+        st.markdown(result)
